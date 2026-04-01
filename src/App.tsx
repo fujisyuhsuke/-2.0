@@ -39,6 +39,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FORM_CONFIGS } from './formConfig';
 
 // --- Types ---
 type LoginTab = 'qrcode' | 'account';
@@ -134,35 +135,53 @@ const CertificationCenter = ({
       setFormData(currentInstance.data);
     } else if (view === 'form') {
       // Pre-fill demo data for new applications to facilitate demonstration
-      if (selectedCategory === '飞手认证') {
+      if (selectedCategory === '飞手认证' || selectedCategory === '通航飞行员认证') {
         setFormData({
-          name: '张三',
-          idCard: '44010619900101001X',
-          certNo: 'UAV-P-2024001',
-          licenseNo: 'L-2024-001',
+          name: selectedCategory === '飞手认证' ? '张三' : '李四',
+          idCard: selectedCategory === '飞手认证' ? '44010619900101001X' : '44010619850505002X',
+          certNo: selectedCategory === '飞手认证' ? 'UAV-P-2024001' : 'GA-P-2024999',
+          licenseNo: selectedCategory === '飞手认证' ? 'L-2024-001' : 'ATPL-2024-888',
           expiryDate: '2029-12-31',
-          allowTypes: '多旋翼-III类, 固定翼-I类'
+          allowTypes: selectedCategory === '飞手认证' ? '多旋翼-III类' : '塞斯纳172, 罗宾逊R44'
         });
-      } else if (selectedCategory === '无人机认证') {
+      } else if (selectedCategory === '无人机认证' || selectedCategory === '通航飞行器认证') {
         const randomID = Math.floor(1000 + Math.random() * 9000);
-        setFormData({
-          deviceModel: 'DJI Mavic 3 Pro',
-          uavType: '多旋翼无人机',
-          snCode: `SN-772910${randomID}`,
-          uasCode: `UAS-G-${randomID}`,
-          factory: '深圳市大疆创新科技有限公司',
-          ownerType: userType === 'enterprise' ? '单位所有' : '个人所有',
-          ownerName: userType === 'enterprise' ? '广东某航测技术有限公司' : '张三',
-          ownerId: userType === 'enterprise' ? '91440101MA59XXXXXX' : '4401**********001X'
-        });
-      } else if (selectedCategory === '无人机飞行企业认证') {
-        setFormData({
-          corpName: '广东某航测技术有限公司',
+        if (selectedCategory === '无人机认证') {
+          setFormData({
+            deviceModel: 'DJI Mavic 3 Pro',
+            uavType: '多旋翼无人机',
+            snCode: `SN-772910${randomID}`,
+            uasCode: `UAS-G-${randomID}`,
+            factory: '深圳市大疆创新科技有限公司',
+            ownerType: userType === 'enterprise' ? '单位所有' : '个人所有',
+            ownerName: userType === 'enterprise' ? '广东某航测技术有限公司' : '张三',
+            ownerId: userType === 'enterprise' ? '91440101MA59XXXXXX' : '4401**********001X'
+          });
+        } else {
+          setFormData({
+            gaType: '固定翼飞机',
+            callsign: `B-${randomID}`,
+            regNo: `B-${randomID}`,
+            airworthyNo: `AC-2024-${randomID}`,
+            ownerUnit: '广东某通用航空公司'
+          });
+        }
+      } else if (selectedCategory === '无人机飞行企业认证' || selectedCategory === '通航飞行企业认证') {
+        const baseData = {
+          corpName: selectedCategory === '无人机飞行企业认证' ? '广东某航测技术有限公司' : '广东某通用航空公司',
+          qualification: selectedCategory === '无人机飞行企业认证' ? '民用无人驾驶航空器运营合格证' : '通用航空经营许可证',
           corpId: '91440101MA59XXXXXX',
-          qualification: '民用无人驾驶航空器运营合格证',
           expiryDate: '2028-12-31',
-          scope: '摄影测量与遥感、电力巡检、农林植保、城市规划咨询、低空物流配送。'
-        });
+          scope: selectedCategory === '无人机飞行企业认证' ? '摄影测量与遥感、电力巡检、农林植保、城市规划咨询、低空物流配送。' : '空中游览、航空摄影、城市消防、医疗救护、航空护林。'
+        };
+        if (selectedCategory === '通航飞行企业认证') {
+          setFormData({
+            ...baseData,
+            gaPermitInfo: 'GA-2024-001'
+          });
+        } else {
+          setFormData(baseData);
+        }
       } else {
         setFormData({});
       }
@@ -183,93 +202,182 @@ const CertificationCenter = ({
     ];
 
     // Validation logic
+    const idCardReg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+    const corpIdReg = /^[0-9A-HJ-NP-RTUW-Y]{2}\d{6}[0-9A-HJ-NP-RTUW-Y]{10}$/;
+
     if (selectedCategory === '飞手认证') {
-      const idCardReg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+      if (!formData.name) {
+        setModal({ show: true, title: '校验失败', message: '请输入飞手姓名', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
       if (!idCardReg.test(formData.idCard)) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '居民身份证号格式不正确，请检查后重新输入',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '校验失败', message: '居民身份证号格式不正确', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.certNo) {
+        setModal({ show: true, title: '校验失败', message: '请输入飞行合格证号', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
       if (!formData.licenseNo || formData.licenseNo.length < 5) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '执照编号格式不正确',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '校验失败', message: '执照编号格式不正确', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.expiryDate) {
+        setModal({ show: true, title: '校验失败', message: '请选择执照有效期', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.allowTypes) {
+        setModal({ show: true, title: '校验失败', message: '请选择准驾机型', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    if (selectedCategory === '通航飞行员认证') {
+      if (!formData.name) {
+        setModal({ show: true, title: '校验失败', message: '请输入飞行员姓名', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!idCardReg.test(formData.idCard)) {
+        setModal({ show: true, title: '校验失败', message: '居民身份证号格式不正确', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.certNo) {
+        setModal({ show: true, title: '校验失败', message: '请输入飞行合格证号', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.licenseNo || formData.licenseNo.length < 5) {
+        setModal({ show: true, title: '校验失败', message: '执照编号格式不正确', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.expiryDate) {
+        setModal({ show: true, title: '校验失败', message: '请选择执照有效期', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.allowTypes) {
+        setModal({ show: true, title: '校验失败', message: '请输入准驾机型', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
     }
 
     if (selectedCategory === '无人机认证') {
-      if (!formData.snCode || formData.snCode.length < 5) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: 'SN 码格式不正确，请重新输入',
-          type: 'alert'
-        });
+      if (!formData.deviceModel) {
+        setModal({ show: true, title: '校验失败', message: '请输入无人机型号', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
-      // Simulate uniqueness check
+      if (!formData.snCode || formData.snCode.length < 5) {
+        setModal({ show: true, title: '校验失败', message: 'SN 码格式不正确，请重新输入', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
       if (formData.snCode === 'SN-EXIST-001') {
-        setModal({
-          show: true,
-          title: '备案冲突',
-          message: '该 SN 码已在系统中备案，请勿重复提交！',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '备案冲突', message: '该 SN 码已在系统中备案，请勿重复提交！', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.uasCode) {
+        setModal({ show: true, title: '校验失败', message: '请输入 UAS 码', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    if (selectedCategory === '通航飞行器认证') {
+      if (!formData.gaType) {
+        setModal({ show: true, title: '校验失败', message: '请输入通航飞行器类型', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.callsign) {
+        setModal({ show: true, title: '校验失败', message: '请输入飞行器呼号', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.regNo) {
+        setModal({ show: true, title: '校验失败', message: '请输入国籍登记号', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.airworthyNo) {
+        setModal({ show: true, title: '校验失败', message: '请输入适航证编号', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.ownerUnit) {
+        setModal({ show: true, title: '校验失败', message: '请输入所属单位', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
     }
 
     if (selectedCategory === '无人机飞行企业认证') {
-      const corpIdReg = /^[0-9A-HJ-NP-RTUW-Y]{2}\d{6}[0-9A-HJ-NP-RTUW-Y]{10}$/;
-      if (!formData.corpId || !corpIdReg.test(formData.corpId)) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '统一社会信用代码格式不正确，请输入 18 位有效代码',
-          type: 'alert'
-        });
+      if (!formData.corpName) {
+        setModal({ show: true, title: '校验失败', message: '请输入企业名称', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
       if (!formData.qualification) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '请填写运营资质信息',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '校验失败', message: '请填写运营资质信息', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.corpId || !corpIdReg.test(formData.corpId)) {
+        setModal({ show: true, title: '校验失败', message: '统一社会信用代码格式不正确', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
       if (!formData.expiryDate) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '请选择资质有效期',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '校验失败', message: '请选择资质有效期', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
       if (!formData.scope || formData.scope.length < 10) {
-        setModal({
-          show: true,
-          title: '校验失败',
-          message: '经营范围描述过短，请详细描述业务范围',
-          type: 'alert'
-        });
+        setModal({ show: true, title: '校验失败', message: '经营范围描述过短', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    if (selectedCategory === '通航飞行企业认证') {
+      if (!formData.corpName) {
+        setModal({ show: true, title: '校验失败', message: '请输入企业名称', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.qualification) {
+        setModal({ show: true, title: '校验失败', message: '请填写运营资质信息', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.corpId || !corpIdReg.test(formData.corpId)) {
+        setModal({ show: true, title: '校验失败', message: '统一社会信用代码格式不正确', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.gaPermitInfo) {
+        setModal({ show: true, title: '校验失败', message: '请填写通用航空经营许可信息', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.expiryDate) {
+        setModal({ show: true, title: '校验失败', message: '请选择资质有效期', type: 'alert' });
+        setIsSubmitting(false);
+        return;
+      }
+      if (!formData.scope || formData.scope.length < 10) {
+        setModal({ show: true, title: '校验失败', message: '经营范围描述过短', type: 'alert' });
         setIsSubmitting(false);
         return;
       }
@@ -557,12 +665,12 @@ const CertificationCenter = ({
   const renderDetailView = () => {
     if (!currentInstance) return null;
 
-    const isPilot = selectedCategory === '飞手认证';
+    const isPilot = selectedCategory === '飞手认证' || selectedCategory === '通航飞行员认证';
     const isDrone = selectedCategory === '无人机认证';
     const isMultiType = isDrone || selectedCategory === '通航飞行员认证' || selectedCategory === '通航飞行器认证';
 
     const pilotLabels: Record<string, string> = {
-      name: '飞手姓名',
+      name: selectedCategory === '飞手认证' ? '飞手姓名' : '飞行员姓名',
       idCard: '居民身份证号',
       certNo: '飞行合格证号',
       licenseNo: '执照编号',
@@ -571,7 +679,7 @@ const CertificationCenter = ({
     };
 
     const droneLabels: Record<string, string> = {
-      deviceModel: '无人机型号',
+      deviceModel: selectedCategory === '无人机认证' ? '无人机型号' : '飞行器型号',
       uavType: '机型分类',
       snCode: 'SN 码',
       uasCode: 'UAS 码',
@@ -582,18 +690,27 @@ const CertificationCenter = ({
 
     const corpLabels: Record<string, string> = {
       corpName: '企业名称',
-      corpId: '统一社会信用代码',
       qualification: '运营资质',
+      corpId: '统一社会信用代码',
+      gaPermitInfo: '通用航空经营许可信息',
       expiryDate: '资质有效期',
       scope: '经营范围'
     };
 
-    const labels = isPilot ? pilotLabels : (isDrone ? droneLabels : (selectedCategory === '无人机飞行企业认证' ? corpLabels : {
+    const gaAircraftLabels: Record<string, string> = {
+      gaType: '通航飞行器类型',
+      callsign: '飞行器呼号',
+      regNo: '国籍登记号',
+      airworthyNo: '适航证编号',
+      ownerUnit: '所属单位'
+    };
+
+    const labels = isPilot ? pilotLabels : (isDrone ? droneLabels : (selectedCategory === '通航飞行器认证' ? gaAircraftLabels : (selectedCategory === '无人机飞行企业认证' || selectedCategory === '通航飞行企业认证' ? corpLabels : {
       name: '名称',
       idCard: '证件号',
       corpName: '企业名称',
       corpId: '信用代码'
-    }));
+    })));
 
     return (
       <div className="space-y-6">
@@ -819,227 +936,39 @@ const CertificationCenter = ({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Common Fields */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                {selectedCategory?.includes('企业') ? '企业名称' : '姓名'}
-              </label>
-              <input 
-                type="text" 
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder={selectedCategory?.includes('企业') ? '请输入企业全称' : '请输入真实姓名'}
-                value={formData.name || formData.corpName || ''}
-                onChange={(e) => setFormData({...formData, [selectedCategory?.includes('企业') ? 'corpName' : 'name']: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                {selectedCategory?.includes('企业') ? '统一社会信用代码' : '居民身份证号'}
-              </label>
-              <input 
-                type="text" 
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder={selectedCategory?.includes('企业') ? '18位信用代码' : '18位身份证号'}
-                value={formData.idCard || formData.corpId || ''}
-                onChange={(e) => setFormData({...formData, [selectedCategory?.includes('企业') ? 'corpId' : 'idCard']: e.target.value})}
-              />
-            </div>
-
-            {/* Enterprise Specific Fields */}
-            {selectedCategory === '无人机飞行企业认证' && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">运营资质</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="如：民用无人驾驶航空器运营合格证"
-                    value={formData.qualification || ''}
-                    onChange={(e) => setFormData({...formData, qualification: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">资质有效期</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.expiryDate || ''}
-                    onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">经营范围</label>
+            {selectedCategory && FORM_CONFIGS[selectedCategory]?.fields.map((field) => (
+              <div key={field.id} className={`space-y-2 ${field.colSpan === 2 ? 'md:col-span-2' : ''}`}>
+                <label className="text-sm font-medium text-gray-700">{field.label}</label>
+                {field.type === 'textarea' ? (
                   <textarea 
                     rows={4}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请详细描述企业的无人机飞行经营范围..."
-                    value={formData.scope || ''}
-                    onChange={(e) => setFormData({...formData, scope: e.target.value})}
+                    placeholder={field.placeholder}
+                    value={formData[field.id] || ''}
+                    onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
                   />
-                </div>
-              </>
-            )}
-
-            {/* Pilot Specific Fields */}
-            {(selectedCategory === '飞手认证' || selectedCategory === '通航飞行员认证') && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">飞行合格证号</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.certNo || ''}
-                    onChange={(e) => setFormData({...formData, certNo: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">执照编号</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.licenseNo || ''}
-                    onChange={(e) => setFormData({...formData, licenseNo: e.target.value})}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Pilot Specific Fields */}
-            {selectedCategory === '飞手认证' && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">飞手姓名</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入真实姓名"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">居民身份证号</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入 18 位身份证号"
-                    value={formData.idCard || ''}
-                    onChange={(e) => setFormData({...formData, idCard: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">飞行合格证号</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入合格证编号"
-                    value={formData.certNo || ''}
-                    onChange={(e) => setFormData({...formData, certNo: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">执照编号</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入执照编号"
-                    value={formData.licenseNo || ''}
-                    onChange={(e) => setFormData({...formData, licenseNo: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">执照有效期</label>
-                  <input 
-                    type="date" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.expiryDate || ''}
-                    onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">准驾机型</label>
+                ) : field.type === 'select' ? (
                   <select 
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.allowTypes || ''}
-                    onChange={(e) => setFormData({...formData, allowTypes: e.target.value})}
+                    value={formData[field.id] || ''}
+                    onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
                   >
-                    <option value="">请选择准驾机型</option>
-                    <option value="多旋翼-III类">多旋翼-III类</option>
-                    <option value="多旋翼-IV类">多旋翼-IV类</option>
-                    <option value="固定翼-I类">固定翼-I类</option>
-                    <option value="垂直起降固定翼-II类">垂直起降固定翼-II类</option>
+                    <option value="">{field.placeholder || `请选择${field.label}`}</option>
+                    {field.options?.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
                   </select>
-                </div>
-              </>
-            )}
-
-            {/* Device Specific Fields */}
-            {(selectedCategory === '无人机认证' || selectedCategory === '通航飞行器认证') && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">无人机型号</label>
+                ) : (
                   <input 
-                    type="text" 
+                    type={field.type} 
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.deviceModel || ''}
-                    onChange={(e) => setFormData({...formData, deviceModel: e.target.value})}
+                    placeholder={field.placeholder}
+                    value={formData[field.id] || ''}
+                    onChange={(e) => setFormData({...formData, [field.id]: e.target.value})}
                   />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">机型分类</label>
-                  <select 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.uavType || ''}
-                    onChange={(e) => setFormData({...formData, uavType: e.target.value})}
-                  >
-                    <option value="">请选择机型</option>
-                    <option value="多旋翼无人机">多旋翼无人机</option>
-                    <option value="固定翼无人机">固定翼无人机</option>
-                    <option value="垂直起降固定翼">垂直起降固定翼</option>
-                    <option value="无人直升机">无人直升机</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">SN 码 (出厂序列号)</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入设备唯一 SN 码"
-                    value={formData.snCode || ''}
-                    onChange={(e) => setFormData({...formData, snCode: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">UAS 码</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="请输入民航局核发的 UAS 码"
-                    value={formData.uasCode || ''}
-                    onChange={(e) => setFormData({...formData, uasCode: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">出厂信息/生产厂家</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    value={formData.factory || ''}
-                    onChange={(e) => setFormData({...formData, factory: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">所有者信息</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="姓名或单位名称"
-                    value={formData.ownerName || ''}
-                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
-                  />
-                </div>
-              </>
-            )}
+                )}
+              </div>
+            ))}
           </div>
 
           <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex items-start gap-3 mb-8">
@@ -1519,16 +1448,7 @@ export default function App() {
             { label: '首页', icon: <Home size={16} /> },
             { label: '认证中心', icon: <ShieldCheck size={16} /> },
             { label: '进度中心', icon: <Clock size={16} /> },
-            { label: '飞行申请', icon: <FileText size={16} /> },
-            { label: '空域查询', icon: <Search size={16} /> },
-            ...(userType === 'enterprise' ? [
-              { label: '机队管理', icon: <Plane size={16} /> },
-              { label: '飞手管理', icon: <Users size={16} /> }
-            ] : [
-              { label: '我的证照', icon: <Smartphone size={16} /> }
-            ]),
-            { label: '政策法规', icon: <FileText size={16} /> },
-            { label: '操作指南', icon: <HelpCircle size={16} /> }
+            { label: '飞行申请', icon: <FileText size={16} /> }
           ].map((item) => (
             <button 
               key={item.label} 
