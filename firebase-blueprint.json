@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "uav_pilot": {
+      "title": "飞手认证",
+      "description": "无人机驾驶员资质备案信息",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "用户唯一标识" },
+        "name": { "type": "string", "description": "飞手姓名" },
+        "idCard": { "type": "string", "description": "居民身份证号" },
+        "certNo": { "type": "string", "description": "飞行合格证号" },
+        "licenseNo": { "type": "string", "description": "执照编号" },
+        "expiry": { "type": "string", "format": "date", "description": "执照有效期" },
+        "model": { "type": "string", "description": "准驾机型" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" },
+        "syncStatus": { "type": "object", "description": "多站同步状态" }
+      },
+      "required": ["uid", "name", "idCard", "certNo", "licenseNo"]
+    },
+    "uav_drone": {
+      "title": "无人机认证",
+      "description": "无人机实名备案信息",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "所有者唯一标识" },
+        "deviceModel": { "type": "string", "description": "无人机型号" },
+        "type": { "type": "string", "description": "机型分类" },
+        "snCode": { "type": "string", "description": "SN 码 (出厂序列号)" },
+        "uasCode": { "type": "string", "description": "UAS 码 (实名登记码)" },
+        "manufacturer": { "type": "string", "description": "出厂信息" },
+        "ownerInfo": { "type": "string", "description": "所有者信息" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" }
+      },
+      "required": ["uid", "deviceModel", "snCode", "uasCode"]
+    },
+    "uav_enterprise": {
+      "title": "无人机飞行企业认证",
+      "description": "无人机飞行企业资质信息",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "企业用户唯一标识" },
+        "corpName": { "type": "string", "description": "企业名称" },
+        "qualification": { "type": "string", "description": "运营资质" },
+        "corpId": { "type": "string", "description": "统一社会信用代码" },
+        "expiry": { "type": "string", "format": "date", "description": "资质有效期" },
+        "scope": { "type": "string", "description": "经营范围" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" }
+      },
+      "required": ["uid", "corpName", "corpId", "qualification"]
+    },
+    "ga_pilot": {
+      "title": "通航飞行员认证",
+      "description": "通用航空飞行员资质备案信息",
+      "type": "object",
+      "properties": {
+        "corpUid": { "type": "string", "description": "所属企业唯一标识" },
+        "name": { "type": "string", "description": "飞行员姓名" },
+        "idCard": { "type": "string", "description": "居民身份证号" },
+        "certNo": { "type": "string", "description": "飞行合格证号" },
+        "licenseNo": { "type": "string", "description": "执照编号" },
+        "expiry": { "type": "string", "format": "date", "description": "执照有效期" },
+        "model": { "type": "string", "description": "准驾机型" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" }
+      },
+      "required": ["corpUid", "name", "idCard", "certNo", "licenseNo"]
+    },
+    "ga_aircraft": {
+      "title": "通航飞行器认证",
+      "description": "通用航空器备案信息",
+      "type": "object",
+      "properties": {
+        "corpUid": { "type": "string", "description": "所属单位唯一标识" },
+        "type": { "type": "string", "description": "通航飞行器类型" },
+        "callsign": { "type": "string", "description": "飞行器呼号" },
+        "nationalityNo": { "type": "string", "description": "国籍登记号" },
+        "airworthinessNo": { "type": "string", "description": "适航证编号" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" }
+      },
+      "required": ["corpUid", "type", "nationalityNo", "airworthinessNo"]
+    },
+    "ga_enterprise": {
+      "title": "通航飞行企业认证",
+      "description": "通航飞行企业资质信息",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "企业用户唯一标识" },
+        "corpName": { "type": "string", "description": "企业名称" },
+        "qualification": { "type": "string", "description": "运营资质" },
+        "corpId": { "type": "string", "description": "统一社会信用代码" },
+        "gaLicenseInfo": { "type": "string", "description": "通用航空经营许可信息" },
+        "expiry": { "type": "string", "format": "date", "description": "资质有效期" },
+        "scope": { "type": "string", "description": "经营范围" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "审核状态" }
+      },
+      "required": ["uid", "corpName", "corpId", "qualification"]
+    }
+  },
+  "firestore": {
+    "uav_pilots": { "schema": "uav_pilot", "description": "无人机飞手认证集合" },
+    "uav_drones": { "schema": "uav_drone", "description": "无人机设备认证集合" },
+    "uav_enterprises": { "schema": "uav_enterprise", "description": "无人机飞行企业认证集合" },
+    "ga_pilots": { "schema": "ga_pilot", "description": "通航飞行员认证集合" },
+    "ga_aircrafts": { "schema": "ga_aircraft", "description": "通航飞行器认证集合" },
+    "ga_enterprises": { "schema": "ga_enterprise", "description": "通航飞行企业认证集合" }
+  }
+}

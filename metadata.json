@@ -1,0 +1,5 @@
+{
+  "name": "广东省低空飞行服务统一门户",
+  "description": "广东省低空飞行服务统一门户登录注册模块，集成粤信签实名核验与电子签署流程。",
+  "requestFramePermissions": []
+}

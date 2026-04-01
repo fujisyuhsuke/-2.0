@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isEnterprise() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'enterprise';
+    }
+
+    function isIndividual() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'individual';
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isAuthenticated();
+      allow update: if isOwner(userId);
+    }
+
+    // UAV Pilot Certifications
+    match /uav_pilots/{docId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isEnterprise());
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    // UAV Drone Certifications
+    match /uav_drones/{docId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isEnterprise());
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    // UAV Enterprise Certifications (Enterprise Only)
+    match /uav_enterprises/{docId} {
+      allow read: if isEnterprise();
+      allow create: if isEnterprise() && request.resource.data.uid == request.auth.uid;
+      allow update: if isEnterprise() && resource.data.uid == request.auth.uid;
+    }
+
+    // GA Pilot Certifications (Enterprise Only)
+    match /ga_pilots/{docId} {
+      allow read: if isEnterprise();
+      allow create: if isEnterprise() && request.resource.data.corpUid == request.auth.uid;
+      allow update: if isEnterprise() && resource.data.corpUid == request.auth.uid;
+    }
+
+    // GA Aircraft Certifications (Enterprise Only)
+    match /ga_aircrafts/{docId} {
+      allow read: if isEnterprise();
+      allow create: if isEnterprise() && request.resource.data.corpUid == request.auth.uid;
+      allow update: if isEnterprise() && resource.data.corpUid == request.auth.uid;
+    }
+
+    // GA Enterprise Certifications (Enterprise Only)
+    match /ga_enterprises/{docId} {
+      allow read: if isEnterprise();
+      allow create: if isEnterprise() && request.resource.data.uid == request.auth.uid;
+      allow update: if isEnterprise() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
