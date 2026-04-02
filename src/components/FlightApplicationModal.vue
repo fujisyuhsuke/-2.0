@@ -15,28 +15,16 @@
 
       <div class="flex-1 overflow-y-auto p-8">
         <div v-if="step === 'map'" class="space-y-6">
-          <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3">
-            <MapPin class="text-blue-600 mt-0.5" :size="18" />
-            <div class="text-sm text-blue-800">
-              请在地图上点击选择您的<strong>起飞地点</strong>。系统将为您智能匹配管理部门。
-            </div>
-          </div>
-
-          <div class="aspect-video bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center relative overflow-hidden group">
-            <div class="absolute inset-0 bg-[url('https://picsum.photos/seed/map/1200/800')] opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700"></div>
-            <div class="relative z-10 text-center p-8 bg-white/80 backdrop-blur-md rounded-2xl border border-white shadow-xl max-w-md">
-              <h3 class="font-bold text-gray-800 mb-4">模拟地图交互</h3>
-              <div class="grid grid-cols-2 gap-3">
-                <button 
-                  v-for="loc in locations"
-                  :key="loc.name"
-                  @click="handleLocationSelect(loc.name, loc.station)"
-                  class="p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-sm font-medium"
-                >
-                  {{ loc.name }}
-                </button>
-              </div>
-            </div>
+          <MapSelector @select="handleLocationSelect" />
+          
+          <div class="flex justify-end pt-4">
+            <button 
+              @click="handleNext"
+              :disabled="!selectedLocation"
+              class="px-12 py-3 bg-blue-700 text-white font-bold rounded-xl hover:bg-blue-800 transition-all shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              下一步 <ChevronRight :size="18" />
+            </button>
           </div>
         </div>
 
@@ -46,12 +34,20 @@
               <CheckCircle2 :size="20" />
             </div>
             <div>
-              <p class="text-sm font-bold text-green-800">匹配成功：广东省飞行服务站</p>
-              <p class="text-xs text-green-600">您的起飞地 [{{ selectedLocation?.name }}] 属于省飞服直管区域，请在下方完成填报。</p>
+              <p class="text-sm font-bold text-green-800">匹配成功：{{ selectedLocation?.fss.name }}</p>
+              <p class="text-xs text-green-600">该区域属于省飞服直管，请在下方完成填报。已为您自动填充部分资质信息。</p>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">申报主体</label>
+              <input type="text" disabled :value="userType === 'enterprise' ? preFilled?.enterpriseName : preFilled?.pilotName" class="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-700">关联设备 (SN)</label>
+              <input type="text" disabled :value="userType === 'enterprise' ? 'B-0012, B-0015' : preFilled?.uavSn" class="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed" />
+            </div>
             <div class="space-y-2">
               <label class="text-sm font-medium text-gray-700">任务名称</label>
               <input type="text" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none" placeholder="例如：电力巡检任务" />
@@ -103,14 +99,14 @@
           <div class="max-w-md mx-auto">
             <h3 class="text-xl font-bold text-gray-800 mb-2">即将跳转至外部系统</h3>
             <p class="text-sm text-gray-500 leading-relaxed">
-              您的起飞地 [{{ selectedLocation?.name }}] 属于 <strong>{{ selectedLocation?.station }}</strong> 管理区域。
+              您的起飞地属于 <strong>{{ selectedLocation?.fss.name }}</strong> 管理区域。
               根据规定，该区域的飞行申请需在对应市级飞服站系统进行填报。
             </p>
           </div>
           
           <div class="p-4 bg-gray-50 rounded-xl border border-gray-100 text-left max-w-md mx-auto">
             <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2">目标系统</p>
-            <p class="text-sm font-medium text-gray-700">{{ selectedLocation?.station }} 综合管理平台</p>
+            <p class="text-sm font-medium text-gray-700">{{ selectedLocation?.fss.name }} 综合管理平台</p>
           </div>
 
           <div class="flex gap-4 max-w-md mx-auto">
@@ -120,8 +116,13 @@
             >
               返回
             </button>
-            <button class="flex-[2] py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
-              前往填报 <ChevronRight :size="18" />
+            <button 
+              @click="handleExternalJump"
+              :disabled="isSyncing"
+              class="flex-[2] py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition-all shadow-lg shadow-orange-200 flex items-center justify-center gap-2"
+            >
+              <Loader2 v-if="isSyncing" class="animate-spin" :size="18" />
+              <template v-else>前往填报 <ChevronRight :size="18" /></template>
             </button>
           </div>
         </div>
@@ -131,30 +132,50 @@
 </template>
 
 <script setup lang="ts">
-import { X, MapPin, CheckCircle2, ExternalLink, ChevronRight } from 'lucide-vue-next';
+import { X, MapPin, CheckCircle2, ExternalLink, ChevronRight, Loader2 } from 'lucide-vue-next';
+import MapSelector from './shared/MapSelector.vue';
+import { LocationSelection } from '../types';
+import { getPreFilledData, syncExternalStatus } from '../services/flightTools';
+import { ref, onMounted } from 'vue';
 
 const props = defineProps<{
   isOpen: boolean;
   step: 'map' | 'form' | 'external';
-  selectedLocation: { name: string, station: string } | null;
+  selectedLocation: LocationSelection | null;
+  userType: 'individual' | 'enterprise';
 }>();
 
 const emit = defineEmits(['close', 'update:step', 'update:selectedLocation']);
 
-const locations = [
-  { name: '广州市天河区', station: '广州飞服站' },
-  { name: '深圳市南山区', station: '深圳飞服站' },
-  { name: '珠海市香洲区', station: '珠海飞服站' },
-  { name: '清远市清城区', station: '省飞服' }
-];
+const preFilled = ref<any>(null);
+const isSyncing = ref(false);
 
-const handleLocationSelect = (name: string, station: string) => {
-  emit('update:selectedLocation', { name, station });
-  if (station === '省飞服') {
+onMounted(() => {
+  preFilled.value = getPreFilledData(props.userType);
+});
+
+const handleLocationSelect = (selection: LocationSelection) => {
+  emit('update:selectedLocation', selection);
+};
+
+const handleNext = () => {
+  if (!props.selectedLocation) return;
+  
+  if (props.selectedLocation.fss.type === 'provincial') {
     emit('update:step', 'form');
   } else {
     emit('update:step', 'external');
   }
+};
+
+const handleExternalJump = async () => {
+  isSyncing.value = true;
+  // 模拟跳转并同步
+  await syncExternalStatus('APP-2024-001');
+  isSyncing.value = false;
+  alert('已完成外部系统对接，进度已同步至省门户。');
+  emit('close');
+  emit('update:step', 'map');
 };
 
 const handleSubmit = () => {

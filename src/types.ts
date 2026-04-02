@@ -1,3 +1,21 @@
+export interface Coordinate {
+  lat: number;
+  lng: number;
+}
+
+export interface FSSInfo {
+  id: string;
+  name: string;
+  type: 'provincial' | 'city';
+  description: string;
+}
+
+export interface LocationSelection {
+  coordinate: Coordinate;
+  address: string;
+  fss: FSSInfo;
+}
+
 export type LoginTab = 'qrcode' | 'account';
 export type RegisterStep = 'type' | 'info' | 'verify' | 'sign' | 'complete';
 export type RegisterType = 'individual' | 'enterprise';

@@ -89,6 +89,15 @@
 
           <FlightBusinessDeclaration 
             v-else-if="currentNav === '飞行业务申报'"
+            :userType="userType"
+            @request-uav-apply="handleOpenFlightFlow"
+          />
+
+          <FlightApplicationFlow
+            v-else-if="currentNav === '飞行申请办理'"
+            :userType="userType"
+            @back="currentNav = '飞行业务申报'"
+            @next="handleFlowNext"
           />
 
           <AccountManagement 
@@ -121,13 +130,6 @@
     <!-- Login View -->
     <Login v-else @login-success="handleLoginSuccess" />
 
-    <FlightApplicationModal 
-      :isOpen="showFlightMap"
-      @close="showFlightMap = false"
-      v-model:step="applicationStep"
-      v-model:selectedLocation="selectedLocation"
-    />
-
     <FooterSection v-if="!isLoggedIn" />
   </div>
 </template>
@@ -139,13 +141,13 @@ import {
   Smartphone, MessageSquare, ThumbsUp, HelpCircle, Home
 } from 'lucide-vue-next';
 import FooterSection from './components/FooterSection.vue';
-import FlightApplicationModal from './components/FlightApplicationModal.vue';
+import FlightApplicationFlow from './components/FlightApplicationFlow.vue';
 import CertificationCenter from './components/CertificationCenter.vue';
 import FlightBusinessDeclaration from './components/FlightBusinessDeclaration.vue';
 import AccountManagement from './components/AccountManagement.vue';
 import Login from './components/Login.vue';
 import Dashboard from './components/Dashboard.vue';
-import { CertView, CertInstance } from './types';
+import { CertView, CertInstance, LocationSelection } from './types';
 
 // Auth State
 const isLoggedIn = ref(false);
@@ -163,7 +165,7 @@ const navItems = [
 // Flight Application State
 const showFlightMap = ref(false);
 const applicationStep = ref<'map' | 'form' | 'external'>('map');
-const selectedLocation = ref<{ name: string, station: string } | null>(null);
+const selectedLocation = ref<LocationSelection | null>(null);
 
 // Certification State
 const certView = ref<CertView>('categories');
@@ -186,7 +188,23 @@ const handleLoginSuccess = (type: 'individual' | 'enterprise') => {
 };
 
 const handleRequestFlight = () => {
-  currentNav.value = '飞行业务申报';
+  handleOpenFlightFlow();
+};
+
+const handleOpenFlightFlow = () => {
+  currentNav.value = '飞行申请办理';
+};
+
+const handleFlowNext = (location: LocationSelection) => {
+  selectedLocation.value = location;
+  // Handle next steps (form or external)
+  if (location.fss.type === 'city') {
+    // Simulate external jump
+    window.open('https://www.baidu.com', '_blank');
+  } else {
+    // Go to next internal step
+    alert('进入省飞服内部填报表单 (开发中)');
+  }
 };
 
 const handleLogout = () => {
