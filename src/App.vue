@@ -88,7 +88,7 @@
           />
 
           <FlightBusinessDeclaration 
-            v-else-if="currentNav === '业务申报'"
+            v-else-if="currentNav === '飞行业务申报'"
           />
 
           <AccountManagement 
@@ -156,7 +156,7 @@ const currentNav = ref('首页');
 const navItems = [
   { label: '首页', icon: Home },
   { label: '资质认证', icon: ShieldCheck },
-  { label: '业务申报', icon: FileText },
+  { label: '飞行业务申报', icon: FileText },
   { label: '账号管理', icon: User }
 ];
 
@@ -186,7 +186,7 @@ const handleLoginSuccess = (type: 'individual' | 'enterprise') => {
 };
 
 const handleRequestFlight = () => {
-  currentNav.value = '业务申报';
+  currentNav.value = '飞行业务申报';
 };
 
 const handleLogout = () => {
